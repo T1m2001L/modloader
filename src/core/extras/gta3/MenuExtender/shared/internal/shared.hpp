@@ -7,6 +7,7 @@
  */
 #pragma once
 #include <cstdint>
+#include <string>
 #include <windows.h>
 
 // Constat values for easy tweaking...
@@ -164,6 +165,13 @@ class ControllerBlockManager
         HANDLE              hMemory;        // Handle to the mapped memory
         ControllerBlock*    pMemory;        // Pointer to the mapped memory
 
+        static const char* MappingName()
+        {
+            // Plugins in one process share pointers and a heap; other processes must not.
+            static const std::string name = std::string(CBM_NAME) + "_" + std::to_string(GetCurrentProcessId());
+            return name.c_str();
+        }
+
         // Initialises the shared interface
         void InitialiseInterface()
         {
@@ -194,7 +202,7 @@ class ControllerBlockManager
         void OpenController()
         {
             // Get handle to the mapped memory
-            if(hMemory || (hMemory = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, CBM_NAME)))
+            if(hMemory || (hMemory = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, MappingName())))
             {
                 // Get the mapped memory pointer
                 this->MapMemory();
@@ -212,7 +220,7 @@ class ControllerBlockManager
         void CreateController()
         {
             // Creates the memory mapping
-            if(hMemory || (hMemory = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE | SEC_COMMIT, 0, CBM_SIZE, CBM_NAME)))
+            if(hMemory || (hMemory = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE | SEC_COMMIT, 0, CBM_SIZE, MappingName())))
             {
                 // Get the mapped memory pointer
                 this->MapMemory();
@@ -257,7 +265,7 @@ class ControllerBlockManager
             if(this->IsOpen()) return true;
             
             // Open it to check if it exists
-            if(HANDLE hMap = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, CBM_NAME))
+            if(HANDLE hMap = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, MappingName()))
             {
                 // Yes, it does, close it and tell that it exists
                 CloseHandle(hMap);

@@ -291,7 +291,8 @@ bool CAECustomBankLoader::PostInitialise()
 bool CAECustomBankLoader::InitialiseThread()
 {
     // Initialise bank loading thread
-    if(hSemaphore = CreateSemaphoreA(nullptr, 0, 50 + 1, "BankLoaderSem"))
+    // The request queue is process-local, so its notifications must be local too.
+    if(hSemaphore = CreateSemaphoreA(nullptr, 0, 50 + 1, nullptr))
     {
         hThread = CreateThread(nullptr, 0, BankLoadingThread, this, CREATE_SUSPENDED, nullptr);
         if(hThread)
